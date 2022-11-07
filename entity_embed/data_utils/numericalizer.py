@@ -46,6 +46,7 @@ class FieldConfig:
     alphabet: List[str]
     max_str_len: int
     vocab: Vocab
+    vector_tensor: torch.Tensor
     n_channels: int
     embed_dropout_p: float
     use_attention: bool
@@ -61,7 +62,7 @@ class FieldConfig:
         repr_dict = {}
         for k, v in self.__dict__.items():
             if isinstance(v, Callable):
-                repr_dict[k] = f"{inspect.getmodule(v).__name__}.{v.__name__}"
+                repr_dict[k] = f"{inspect.getmodule(v).__name__}.{getattr(v, '.__name__', repr(v))}"
             else:
                 repr_dict[k] = v
         return "{cls}({attrs})".format(
@@ -102,9 +103,11 @@ class StringNumericalizer:
         # with characters as rows and positions as columns.
         # This is the shape expected by StringEmbedCNN.
         ord_encoded_val = self._ord_encode(val)
+        ord_encoded_val = ord_encoded_val[: self.max_str_len]  # truncate to max_str_len
         encoded_arr = np.zeros((len(self.alphabet), self.max_str_len), dtype=np.float32)
         if len(ord_encoded_val) > 0:
             encoded_arr[ord_encoded_val, range(len(ord_encoded_val))] = 1.0
+
         t = torch.from_numpy(encoded_arr)
         return t, len(val)
 
